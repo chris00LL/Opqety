@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ＰＢ分析（勝率版）</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+.box { border: 2px solid black; border-radius: 8px; padding: 10px 20px; margin: 10px auto; width: 320px; }
+button { margin: 10px; padding: 10px 20px; }
+.history { margin-top: 20px; width: 90%; max-width: 700px; margin-left:auto; margin-right:auto; }
+.warning { color: red; font-weight: bold; margin-top: 10px; }
+.analysis { margin-top: 20px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>ＰＢ分析（勝率版）</h1>
+<div class="box">最近4局結果</div>
+<div>↓</div>
+<div class="box">判斷四株編碼 (1 / 2 / X)</div>
+<div>↓</div>
+<div class="box">
+  選擇四株編碼：<br>
+  <button onclick="nextStep('1')">1</button>
+  <button onclick="nextStep('2')">2</button>
+  <button onclick="nextStep('X')">X</button>
+</div>
+<div id="choosePattern" style="display:none;">
+  <div>↓</div>
+  <div class="box">
+    選擇排列類型：<br>
+    <button onclick="finalDecision('正類')">正類</button>
+    <button onclick="finalDecision('反類')">反類</button>
+  </div>
+</div>
+<div>↓</div>
+<div id="result" class="box">等待選擇...</div>
+<div id="warning" class="warning"></div>
+<div>↓</div>
+<div class="box">
+  <button onclick="resetAll()">重置紀錄</button>
+  <div id="stats">出手次數：0 次</div>
+</div>
+<div class="history">
+  <h2>出手紀錄</h2>
+  <table border="1" cellpadding="5" cellspacing="0" style="width:100%;">
+    <thead>
+      <tr><th>#</th><th>四株</th><th>排列類型</th><th>出手建議</th><th>勝/敗紀錄</th></tr>
+    </thead>
+    <tbody id="historyBox"></tbody>
+  </table>
+</div>
+<div class="analysis" id="analysisMsg"></div>
+
+<script>
+let historyList = [];
+let winCount = 0;
+let loseCount = 0;
+let totalCount = 0;
+let lastX = 0;
+
+function nextStep(step) {
+  const resultBox = document.getElementById('result');
+  if (step === 'X') {
+    resultBox.innerHTML = '<strong>四株是 X：</strong><br>建議：休手觀察';
+    recordHistory('X', '-', '休手');
+    lastX++;
+    checkWarning();
+  } else {
+    document.getElementById('choosePattern').style.display = 'block';
+    resultBox.innerHTML = '請選擇排列類型...';
+    lastX = 0;
+  }
+}
+
+function finalDecision(type) {
+  const resultBox = document.getElementById('result');
+  let decision = (type === '正類') ? '順打第4局方向' : '反打第4局方向';
+  resultBox.innerHTML = `<strong>${type}排列：</strong><br>${decision}`;
+  recordHistory('1/2', type, decision);
+}
+
+function recordHistory(code, patternType, action) {
+  historyList.push({ code, patternType, action, result: null });
+  totalCount++;
+  updateHistory();
+}
+
+function updateHistory() {
+  const historyBox = document.getElementById('historyBox');
+  historyBox.innerHTML = historyList.map((h, i) => 
+    `<tr>
+      <td>${i + 1}</td>
+      <td>${h.code}</td>
+      <td>${h.patternType}</td>
+      <td>${h.action}</td>
+      <td><button onclick="markWin(${i})">勝</button> <button onclick="markLose(${i})">敗</button></td>
+    </tr>`
+  ).join('');
+  let totalGames = winCount + loseCount;
+  let winRate = totalGames > 0 ? (winCount / totalGames * 100).toFixed(1) : 0;
+  document.getElementById('stats').innerText = `出手次數：${totalCount} 次｜勝：${winCount}｜敗：${loseCount}｜勝率：${winRate}%`;
+  updateAnalysis(winRate);
+}
+
+function markWin(index) { winCount++; updateHistory(); }
+function markLose(index) { loseCount++; updateHistory(); }
+
+function resetAll() {
+  historyList = [];
+  winCount = 0;
+  loseCount = 0;
+  totalCount = 0;
+  lastX = 0;
+  document.getElementById('result').innerHTML = '等待選擇...';
+  document.getElementById('historyBox').innerHTML = '';
+  document.getElementById('stats').innerText = '出手次數：0 次';
+  document.getElementById('warning').innerHTML = '';
+  document.getElementById('analysisMsg').innerHTML = '';
+}
+
+function checkWarning() {
+  document.getElementById('warning').innerText = (lastX >= 2) ? '⚠️ 已連續出現2次X，建議立即休息！' : '';
+}
+
+function updateAnalysis(winRate) {
+  let msg = '';
+  if (winRate >= 55) msg = '✅ 進入強勢期：可以考慮加碼出手';
+  else if (winRate <= 45) msg = '⚠️ 進入休息期：建議暫停觀察';
+  else msg = '⚪ 正常區間，持續觀察穩定性';
+  document.getElementById('analysisMsg').innerText = msg;
+}
+</script>
+</body>
+</html>
